@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Admin · ZIVI</title><link rel="stylesheet" href="style.css"></head><body>
+<header><img src="logo.jpg" alt="ZIVI"><h1>ADMIN</h1></header><main>
+<div id="login" class="box" style="max-width:360px;margin:auto">
+  <input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Contraseña">
+  <button class="btn dark" style="width:100%" onclick="entrar()">Ingresar</button><p id="err" style="color:#b00"></p></div>
+<div id="panel" hidden>
+  <div class="box"><h3 id="ft">Nuevo producto</h3>
+    <input id="nm" placeholder="Nombre"><input id="pr" type="number" placeholder="Precio (solo números)">
+    <textarea id="ds" rows="3" placeholder="Características"></textarea>
+    <input id="im" type="file" accept="image/*">
+    <button class="btn dark" id="gb" onclick="guardar()">Guardar producto</button>
+    <button class="btn gray" style="margin-top:8px" onclick="limpiar()">Cancelar edición</button></div>
+  <div class="box" id="lista"></div>
+  <button class="btn gray" onclick="db.auth.signOut().then(init)">Cerrar sesión</button></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const db=supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_KEY);
+const $=i=>document.getElementById(i);let items=[],edit=null;
+async function init(){const {data}=await db.auth.getSession();
+  $('login').hidden=!!data.session;$('panel').hidden=!data.session;if(data.session)cargar()}
+async function entrar(){const {error}=await db.auth.signInWithPassword({email:$('em').value,password:$('pw').value});
+  $('err').textContent=error?'Datos incorrectos':'';init()}
+async function cargar(){const {data}=await db.from('products').select('*').order('created_at',{ascending:false});items=data||[];
+  $('lista').innerHTML=items.map(p=>`<div class="row"><img src="${p.image_url||''}"><b>${p.name}<br><small>${p.price}</small></b>
+  <button class="btn gray sm" onclick="editar('${p.id}')">Editar</button>
+  <button class="btn gray sm" onclick="alternar('${p.id}')">${p.is_active?'Ocultar':'Mostrar'}</button>
+  <button class="btn gray sm" onclick="borrar('${p.id}')">Borrar</button></div>`).join('')||'Aún no hay productos.'}
+async function guardar(){
+  const f=$('im').files[0];let row={name:$('nm').value,price:$('pr').value,description:$('ds').value};
+  if(!row.name||!row.price)return alert('Falta nombre o precio');
+  $('gb').disabled=true;
+  if(f){const path=Date.now()+'-'+f.name.replace(/[^\w.]/g,'_');
+    const {error}=await db.storage.from('catalogo').upload(path,f);
+    if(error){alert(error.message);$('gb').disabled=false;return}
+    row.image_url=db.storage.from('catalogo').getPublicUrl(path).data.publicUrl}
+  const r=edit?await db.from('products').update(row).eq('id',edit):await db.from('products').insert(row);
+  if(r.error)alert(r.error.message);$('gb').disabled=false;limpiar();cargar()}
+function editar(id){const p=items.find(x=>x.id==id);edit=id;$('nm').value=p.name;$('pr').value=p.price;$('ds').value=p.description||'';
+  $('ft').textContent='Editando (la imagen es opcional)';scrollTo(0,0)}
+function limpiar(){edit=null;['nm','pr','ds','im'].forEach(i=>$(i).value='');$('ft').textContent='Nuevo producto'}
+async function alternar(id){const p=items.find(x=>x.id==id);await db.from('products').update({is_active:!p.is_active}).eq('id',id);cargar()}
+async function borrar(id){if(confirm('¿Borrar este producto?')){await db.from('products').delete().eq('id',id);cargar()}}
+init();
+</script></body></html>

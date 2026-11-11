@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>ZIVI · Catálogo</title>
+<link rel="icon" href="logo.jpg"><link rel="stylesheet" href="style.css"></head><body>
+<header><img src="logo.jpg" alt="ZIVI"><h1>ZIVI</h1></header>
+<main><div id="grid" class="grid"><p class="empty">Cargando…</p></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const db=supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_KEY);
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+(async()=>{
+  const {data,error}=await db.from('products').select('*').eq('is_active',true).order('created_at',{ascending:false});
+  const g=document.getElementById('grid');
+  if(error||!data.length){g.innerHTML='<p class="empty">Pronto vas a ver nuestros productos aquí.</p>';return}
+  g.innerHTML=data.map(p=>{
+    const precio=CFG.MONEDA+' '+Number(p.price).toLocaleString('es-PY');
+    const msg=encodeURIComponent(`Hola! Quiero pedir: ${p.name} (${precio})`);
+    return `<article class="card"><img src="${esc(p.image_url)}" alt="${esc(p.name)}" loading="lazy">
+    <div><h3>${esc(p.name)}</h3><span class="price">${precio}</span><p>${esc(p.description)}</p>
+    <a class="btn" target="_blank" rel="noopener" href="https://wa.me/${CFG.WHATSAPP}?text=${msg}">Pedir por WhatsApp</a></div></article>`}).join('');
+})();
+</script></body></html>
