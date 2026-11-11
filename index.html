@@ -14,7 +14,7 @@ const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
   if(error||!data.length){g.innerHTML='<p class="empty">Pronto vas a ver nuestros productos aquí.</p>';return}
   g.innerHTML=data.map(p=>{
     const precio=CFG.MONEDA+' '+Number(p.price).toLocaleString('es-PY');
-    const msg=encodeURIComponent(`Hola! Quiero pedir: ${p.name} (${precio})`);
+    const msg=encodeURIComponent(`Quiero esta cartera\nPrecio: ${precio}\n${p.image_url||''}`);
     return `<article class="card"><img src="${esc(p.image_url)}" alt="${esc(p.name)}" loading="lazy">
     <div><h3>${esc(p.name)}</h3><span class="price">${precio}</span><p>${esc(p.description)}</p>
     <a class="btn" target="_blank" rel="noopener" href="https://wa.me/${CFG.WHATSAPP}?text=${msg}">Pedir por WhatsApp</a></div></article>`}).join('');
